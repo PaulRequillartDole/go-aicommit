@@ -2,7 +2,13 @@ package aicommit
 
 import (
 	"context"
+	"github.com/joho/godotenv"
 	gogpt "github.com/sashabaranov/go-gpt3"
+	"log"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 type AiCommit struct {
@@ -10,22 +16,43 @@ type AiCommit struct {
 	Diff []byte
 }
 
+var (
+	_, b, _, _ = runtime.Caller(0)
+	// Root folder of this project
+	Root = filepath.Join(filepath.Dir(b), "../..")
+)
+
 func New(id int, diff []byte) *AiCommit {
 	return &AiCommit{ID: id, Diff: diff}
 }
 
+func goDotEnvVariable(key string) string {
+
+	environmentPath := filepath.Join(Root, ".env")
+	err := godotenv.Load(environmentPath)
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+	return os.Getenv(key)
+}
+
 func (a *AiCommit) GenerateCommitMessage() (string, error) {
-	gptClient := gogpt.NewClient("YOUR_OPENAI_API_KEY")
+	gptClient := gogpt.NewClient(goDotEnvVariable("OPENAI_API_KEY"))
 	ctx := context.Background()
-	prompt := "Lisez le git diff suivant pour plusieurs fichiers :" + string(a.Diff) + "Générez 1 à 3 paragraphes pour expliquer cette différence à un humain sans mentionner les changements eux-mêmes."
+	prompt := goDotEnvVariable("BEFORE_PROMPT") + string(a.Diff)
 	req := gogpt.CompletionRequest{
-		Model:     gogpt.GPT3TextDavinci002,
-		MaxTokens: 100,
-		Prompt:    prompt,
+		Model:            gogpt.GPT3TextDavinci002,
+		MaxTokens:        200,
+		Prompt:           prompt,
+		Temperature:      0.7,
+		TopP:             1,
+		FrequencyPenalty: 0,
+		PresencePenalty:  0,
+		Stream:           false,
 	}
 	resp, err := gptClient.CreateCompletion(ctx, req)
 	if err != nil {
 		return "", err
 	}
-	return resp.Choices[0].Text, nil
+	return strings.ReplaceAll(resp.Choices[0].Text, "\n", ""), nil
 }

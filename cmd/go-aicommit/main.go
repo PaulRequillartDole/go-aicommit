@@ -21,24 +21,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd = exec.Command("git", "diff")
+	cmd = exec.Command("git", "diff", "--cached", "--", ".", "':(exclude)yarn.lock'", "':(exclude)package-lock.json'")
+
 	diff, err := cmd.Output()
 	if err != nil {
 		fmt.Println("Erreur lors de la récupération de git diff :", err)
 		os.Exit(1)
 	}
 
-	if diff == nil {
-		fmt.Println("Diff est vide", err)
+	if len(diff) == 0 {
+		fmt.Println("Diff est vide, impossible de générer un message de commit.")
 		os.Exit(1)
 	}
 
 	commit := aicommit.New(1, diff)
+
+	fmt.Println("Génération du message de commit 🤖")
 	message, err := commit.GenerateCommitMessage()
 
 	if err != nil {
 		log.Panic(err.Error())
 	}
 
-	println(message)
+	fmt.Println(message)
 }
