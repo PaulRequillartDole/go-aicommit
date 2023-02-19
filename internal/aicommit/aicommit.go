@@ -41,8 +41,8 @@ func (a *AiCommit) GenerateCommitMessage() (string, error) {
 	ctx := context.Background()
 	prompt := goDotEnvVariable("BEFORE_PROMPT") + string(a.Diff)
 	req := gogpt.CompletionRequest{
-		Model:            gogpt.GPT3TextDavinci002,
-		MaxTokens:        200,
+		Model:            gogpt.GPT3TextDavinci003,
+		MaxTokens:        300,
 		Prompt:           prompt,
 		Temperature:      0.7,
 		TopP:             1,
